@@ -2,16 +2,42 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 )
 
 type player struct {
-	name string
+	Name string
 	conn net.Conn
+}
+
+func (p *player) SendMsg(s string) (n int, err error) {
+	bs := []byte(s)
+	n, err = p.conn.Write(bs)
+	return n, err
+}
+
+func (p *player) RecvMsg() (s string) {
+	buff := make([]byte, 100)
+	n, err := p.conn.Read(buff)
+	if err != nil {
+		fmt.Println("Problem receiving message: ", err)
+	}
+	return string(buff[:n-2])
 }
 
 type battleground struct {
 	ground []int
+}
+
+func NewBattleground() {
+	bgsize := 100
+	bgmaxheight := 100
+	ground := make([]int, bgsize)
+	for i := 0; i < bgsize; i++ {
+		ground[i] = rand.Intn(bgmaxheight)
+	}
+
 }
 
 func check_err(err error) {
@@ -36,12 +62,8 @@ func main() {
 }
 
 func handleNewConn(conn net.Conn, q chan player) {
-	buff := make([]byte, 100)
-	n, err := conn.Read(buff)
-	if err != nil {
-		fmt.Printf("Error reading from conn remote addr:%v, err:%v\n", conn.RemoteAddr(), err)
-	}
-	p := player{string(buff[:n-2]), conn}
+	p := player{"", conn}
+	p.Name = p.RecvMsg()
 	q <- p
 }
 
@@ -51,7 +73,26 @@ func qwatcher(q chan player) {
 		p1 = <-q
 		p2 = <-q
 
-		fmt.Printf("I got two players named %v and %v - let's do this shiznizzle!\n", p1.name, p2.name)
-
+		fmt.Printf("I got two players named %v and %v - let's do this shiznizzle!\n", p1.Name, p2.Name)
+		theThunderdome(p1, p2)
 	}
+}
+
+func theThunderdome(p1 player, p2 player) {
+	welcome(p1, p2)
+}
+
+func welcome(p1 player, p2 player) {
+	welcome_msg := "%v! You are now entering... the THUNDERDOME. Your opponent, %v, is going to %v.\n"
+	p1.SendMsg(fmt.Sprintf(welcome_msg, p1.Name, p2.Name, randomTaunt()))
+	p2.SendMsg(fmt.Sprintf(welcome_msg, p2.Name, p1.Name, randomTaunt()))
+
+}
+
+func randomTaunt() string {
+	taunts := []string{"eat your socks", "rub honey all over you",
+		"strangle you with your umbilical cord", "curbstomp your teddy bear",
+		"hit you, like, really hard", "bodyslam your grandmother", "forcefeed you kale"}
+	i := rand.Intn(len(taunts))
+	return taunts[i]
 }
