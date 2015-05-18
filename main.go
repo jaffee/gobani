@@ -80,6 +80,18 @@ func qwatcher(q chan player) {
 
 func theThunderdome(p1 player, p2 player) {
 	welcome(p1, p2)
+	ch1 := make(chan string, 1)
+	go getMove(p1, ch1)
+	ch2 := make(chan string, 2)
+	go getMove(p2, ch2)
+	move1 := <-ch1
+	move2 := <-ch2
+	fmt.Println("Player 1 played %v, and p2 played %v", move1, move2)
+}
+
+func getMove(p player, ch chan string) {
+	ans := p.RecvMsg()
+	ch <- ans
 }
 
 func welcome(p1 player, p2 player) {
