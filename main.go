@@ -26,6 +26,10 @@ func (p *player) RecvMsg() (s string) {
 	if err != nil {
 		fmt.Println("Problem receiving message: ", err)
 	}
+	if n < 2 {
+		fmt.Println("Problem!")
+		fmt.Println(string(buff))
+	}
 	return string(buff[:n-2])
 }
 
