@@ -20,17 +20,24 @@ func (p *player) SendMsg(s string) (n int, err error) {
 	return n, err
 }
 
+func (p *player) EndGame(msg string) {
+	p.SendMsg(msg)
+	p.conn.Close()
+}
+
 func (p *player) RecvMsg() (s string) {
 	buff := make([]byte, 100)
 	n, err := p.conn.Read(buff)
 	if err != nil {
-		fmt.Println("Problem receiving message: ", err)
+		fmt.Println("Problem receiving message: ", err.Error())
+		panic(err)
 	}
-	if n < 2 {
+	if n > 2 {
+		return string(buff[:n-2])
+	} else {
 		fmt.Println("Problem!")
-		fmt.Println(string(buff))
+		return p.RecvMsg()
 	}
-	return string(buff[:n-2])
 }
 
 type battleground struct {
@@ -69,8 +76,15 @@ func main() {
 }
 
 func handleNewConn(conn net.Conn, q chan player) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(fmt.Sprintf("Had an error with %v\n", conn.RemoteAddr()))
+		}
+	}()
 	p := player{"", conn}
+	p.SendMsg("Type your name, then hit enter: ")
 	p.Name = p.RecvMsg()
+	p.SendMsg(fmt.Sprintf("Thanks %v! We'll match you with an opponent as soon as possible.\n", p.Name))
 	q <- p
 }
 
@@ -81,11 +95,17 @@ func qwatcher(q chan player) {
 		p2 = <-q
 
 		fmt.Printf("I got two players named %v and %v - let's do this shiznizzle!\n", p1.Name, p2.Name)
-		theThunderdome(p1, p2)
+		go theThunderdome(p1, p2)
 	}
 }
 
 func theThunderdome(p1 player, p2 player) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(fmt.Sprintf("Had an error in the thunderdome - %v and %v\n", p1.Name, p2.Name))
+		}
+	}()
+
 	welcome(p1, p2)
 	p1score := 0
 	p2score := 0
@@ -98,6 +118,11 @@ func theThunderdome(p1 player, p2 player) {
 		go getMove(p2, ch2)
 		move1 := <-ch1
 		move2 := <-ch2
+		if move1 == "error" || move2 == "error" {
+			p1.EndGame("An error has occurred - disconnecting\n")
+			p2.EndGame("An error has occurred - disconnecting\n")
+			panic("Error in getMove")
+		}
 		winner := getWinner(move1, move2)
 		if winner == 1 {
 			p1score++
@@ -141,6 +166,13 @@ func stringIndex(s string, sslice []string) int {
 }
 
 func getMove(p player, ch chan string) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(fmt.Sprintf("Had an error in the getMove - %v\n", p.Name))
+			ch <- "error"
+		}
+	}()
+
 	for {
 		ans := p.RecvMsg()
 		for i := 0; i < len(legalMoves); i++ {
