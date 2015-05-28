@@ -19,9 +19,7 @@ func goldrace(ps ...game.Player) {
 	ps[0].SendMsg(battlefield.toString())
 	for {
 		msg := ps[0].RecvMsg()
-		if msg == "u" {
-			battlefield.Move("P", "u")
-		}
+		battlefield.Move("P", msg)
 		ps[0].SendMsg(battlefield.toString())
 	}
 }
@@ -67,6 +65,15 @@ func (b *battlefield) Move(thing string, move string) {
 	if move == "u" && b.py-1 >= 0 {
 		b.rep[b.py][b.px] = "O"
 		b.py = b.py - 1
-		b.rep[b.py][b.px] = "P"
+	} else if move == "d" && b.py+1 < b.height {
+		b.rep[b.py][b.px] = "O"
+		b.py = b.py + 1
+	} else if move == "r" && b.px+1 < b.width {
+		b.rep[b.py][b.px] = "O"
+		b.px = b.px + 1
+	} else if move == "l" && b.px-1 >= 0 {
+		b.rep[b.py][b.px] = "O"
+		b.px = b.px - 1
 	}
+	b.rep[b.py][b.px] = "P"
 }
