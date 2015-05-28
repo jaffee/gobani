@@ -42,7 +42,7 @@ func handleNewConn(conn net.Conn, q chan Player) {
 	p := Player{"", conn}
 	p.SendMsg("Type your name, then hit enter: ")
 	p.Name = p.RecvMsg()
-	p.SendMsg(fmt.Sprintf("Thanks %v! We'll match you with an opponent as soon as possible.\n", p.Name))
+	p.SendMsg(fmt.Sprintf("Thanks %v! We'll get you into the game as soon as possible.\n", p.Name))
 	q <- p
 }
 
@@ -56,8 +56,21 @@ func qwatcher(q chan Player, g *Game) {
 		}
 
 		fmt.Printf("I got players named %v\n", strings.Join(names, ", "))
-		go g.Playfunc(pslice...)
+		go g.PlayGame(pslice...)
 	}
+}
+
+// Wraps Game.Playfunc with error handling so that one misbehaving Playfunc won't crash the whole app
+func (g *Game) PlayGame(ps ...Player) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+		for _, p := range ps {
+			p.conn.Close()
+		}
+	}()
+	g.Playfunc(ps...)
 }
 
 func (p *Player) SendMsg(s string) (n int, err error) {
