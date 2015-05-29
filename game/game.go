@@ -94,7 +94,6 @@ func (p *Player) RecvMsg() (s string) {
 	if n > 2 {
 		return string(buff[:n-2])
 	} else {
-		fmt.Println("Problem!")
 		return p.RecvMsg()
 	}
 }
