@@ -1,23 +1,28 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jaffee/gobani/game"
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
+	rand.Seed(time.Now().Unix())
 	g := game.Game{goldrace, 2}
 	g.Play()
 }
 
-var height = 10
-var width = 10
-var OPEN = "O"
+var height = 15
+var width = 20
+var OPEN = " "
+var BLOCKED = "#"
 var GOLD = "G"
 
 func goldrace(ps ...game.Player) {
+	welcome(ps)
 	b := makeBattlefield(height, width, len(ps))
 	for _, p := range ps {
 		p.SendMsg(b.toString())
@@ -36,8 +41,35 @@ func goldrace(ps ...game.Player) {
 			player.SendMsg(b.toString())
 		}
 		if winner != -1 {
-			ps[winner].SendMsg("You Win!")
+			for i, p := range ps {
+				if i == winner {
+					p.SendMsg("You Win!\n")
+				} else {
+					p.SendMsg("You Lose!\n")
+				}
+			}
+			time.Sleep(time.Second * 3)
+			return
 		}
+	}
+}
+
+// func handlePlayer(p game.Player, msgs chan string, quit chan bool) {
+// 	for {
+// 		msg := p.RecvMsg()
+// 		msgs <- msg
+// 		select {
+// 		case doquit := <-quit:
+// 			return
+// 		default:
+// 			continue
+// 		}
+// 	}
+// }
+
+func welcome(ps []game.Player) {
+	for i, p := range ps {
+		p.SendMsg(fmt.Sprintf("You are player %v - use 'w', 's', 'a', and 'd' to get to the Gold!\n", i))
 	}
 }
 
@@ -64,15 +96,23 @@ func makeBattlefield(height int, width int, numPlayers int) battlefield {
 	for i := 0; i < height; i++ {
 		rep[i] = make([]string, width)
 		for j := 0; j < width; j++ {
-			rep[i][j] = OPEN
+			if i == 0 || i == height-1 || j == 0 || j == width-1 {
+				rep[i][j] = BLOCKED
+			} else {
+				rep[i][j] = OPEN
+			}
 		}
 	}
+	// TODO maze generator
+
 	positions := make([]position, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		pos := randPos(height, width)
 		positions[i] = pos
 		rep[pos.y][pos.x] = strconv.Itoa(i)
 	}
+	// TODO detect collisions
+
 	goldPos := randPos(height, width)
 	rep[goldPos.y][goldPos.x] = GOLD
 
@@ -89,16 +129,16 @@ func (b *battlefield) toString() string {
 
 func (b *battlefield) Move(pnum int, move string) {
 	pos := b.positions[pnum]
-	if move == "u" && pos.y-1 >= 0 {
+	if move == "w" && pos.y-1 >= 0 {
 		b.rep[pos.y][pos.x] = OPEN
 		pos.y = pos.y - 1
-	} else if move == "d" && pos.y+1 < b.height {
+	} else if move == "s" && pos.y+1 < b.height {
 		b.rep[pos.y][pos.x] = OPEN
 		pos.y = pos.y + 1
-	} else if move == "r" && pos.x+1 < b.width {
+	} else if move == "d" && pos.x+1 < b.width {
 		b.rep[pos.y][pos.x] = OPEN
 		pos.x = pos.x + 1
-	} else if move == "l" && pos.x-1 >= 0 {
+	} else if move == "a" && pos.x-1 >= 0 {
 		b.rep[pos.y][pos.x] = OPEN
 		pos.x = pos.x - 1
 	}
