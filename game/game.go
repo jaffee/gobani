@@ -46,6 +46,11 @@ func handleNewConn(conn net.Conn, q chan Player) {
 	q <- p
 }
 
+// TODO configurable number of players per game have a minimum number, a maximum number, and a timeout
+// the game doesn't start until the minimum number has been reached
+// the game does not start until the timeout has expired, or the maximum number has been reached
+// every time a player joins the timeout is (at least partially) reset
+// there is a max waiting time for the player who has been waiting the longest (to guard against lots of people joining and leaving)
 func qwatcher(q chan Player, g *Game) {
 	pslice := make([]Player, g.NumPlayers)
 	names := make([]string, g.NumPlayers)

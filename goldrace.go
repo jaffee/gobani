@@ -54,6 +54,7 @@ func goldrace(ps ...game.Player) {
 	}
 }
 
+// TODO realtime instead of turn based
 // func handlePlayer(p game.Player, msgs chan string, quit chan bool) {
 // 	for {
 // 		msg := p.RecvMsg()
