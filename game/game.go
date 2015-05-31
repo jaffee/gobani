@@ -56,21 +56,24 @@ func qwatcher(q chan Player, g *Game) {
 		}
 
 		fmt.Printf("I got players named %v\n", strings.Join(names, ", "))
-		go g.PlayGame(pslice...)
+		go g.PlayGame(q, pslice...)
 	}
 }
 
 // Wraps Game.Playfunc with error handling so that one misbehaving Playfunc won't crash the whole app
-func (g *Game) PlayGame(ps ...Player) {
+func (g *Game) PlayGame(q chan Player, ps ...Player) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
-		}
-		for _, p := range ps {
-			p.conn.Close()
+			for _, p := range ps {
+				p.conn.Close()
+			}
 		}
 	}()
 	g.Playfunc(ps...)
+	for _, p := range ps {
+		q <- p
+	}
 }
 
 func (p *Player) SendMsg(s string) (n int, err error) {
