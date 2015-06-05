@@ -22,7 +22,7 @@ var BLOCKED = "#"
 var GOLD = "G"
 
 type command struct {
-	p   Player
+	p   *Player
 	msg string
 }
 
@@ -59,7 +59,7 @@ type battlefield struct {
 
 func goldrace(ps ...game.Player) {
 	players := makePlayers(ps)
-	welcome(ps)
+	welcome(players)
 	b := makeBattlefield(height, width, players)
 	commands_chan := make(chan command, 100)
 	quit_chan := make(chan bool, 1)
@@ -74,7 +74,7 @@ func goldrace(ps ...game.Player) {
 		com.p.SendMsg(b.toString())
 		if com.p.pos == b.gold_position {
 			for _, p := range players {
-				if p == com.p {
+				if &p == com.p {
 					p.SendMsg("You Win!\n")
 				} else {
 					p.SendMsg("You Lose!\n")
@@ -88,9 +88,10 @@ func goldrace(ps ...game.Player) {
 
 func makePlayers(ps []game.Player) []Player {
 	players := make([]Player, len(ps))
-	for i, p := range ps {
-		players[i] = Player{&p, position{}}
+	for i := 0; i < len(ps); i++ {
+		players[i] = Player{&ps[i], position{}}
 	}
+	fmt.Printf("%v\n", players)
 	return players
 }
 
@@ -98,7 +99,7 @@ func makePlayers(ps []game.Player) []Player {
 func handlePlayer(p Player, coms chan command, quit chan bool) {
 	for {
 		msg := p.RecvMsg()
-		com := command{p, msg}
+		com := command{&p, msg}
 		coms <- com
 		select {
 		case <-quit:
@@ -109,8 +110,9 @@ func handlePlayer(p Player, coms chan command, quit chan bool) {
 	}
 }
 
-func welcome(ps []game.Player) {
-	for i, p := range ps {
+func welcome(players []Player) {
+	for i, p := range players {
+		p.Num = i
 		p.SendMsg(fmt.Sprintf("You are player %v - use 'w', 's', 'a', and 'd' to get to the Gold!\n", i))
 	}
 }
@@ -122,22 +124,19 @@ func randPos(height int, width int) (pos position) {
 
 func makeBattlefield(height int, width int, players []Player) battlefield {
 	rep := make([][]string, height)
-	// for i := 0; i < height; i++ {
-	// 	rep[i] = make([]string, width)
-	// 	for j := 0; j < width; j++ {
-	// 		if i == 0 || i == height-1 || j == 0 || j == width-1 {
-	// 			rep[i][j] = BLOCKED
-	// 		} else {
-	// 			rep[i][j] = OPEN
-	// 		}
-	// 	}
-	// }
-	// TODO maze generator
+	for i := 0; i < height; i++ {
+		rep[i] = make([]string, width)
+		for j := 0; j < width; j++ {
+			if i == 0 || i == height-1 || j == 0 || j == width-1 {
+				rep[i][j] = BLOCKED
+			} else {
+				rep[i][j] = OPEN
+			}
+		}
+	}
 
-	for i, p := range players {
-		players[i].pos = randPos(height, width)
-		p.Num = i
-		// rep[pos.y][pos.x] = strconv.Itoa(i)
+	for _, p := range players {
+		p.pos = randPos(height, width)
 	}
 	// TODO detect collisions
 
@@ -150,7 +149,11 @@ func makeBattlefield(height int, width int, players []Player) battlefield {
 func (b *battlefield) toString() string {
 	for i := 0; i < height; i++ {
 		for j := 0; j < width; j++ {
-			b.rep[i][j] = OPEN
+			if i == 0 || i == height-1 || j == 0 || j == width-1 {
+				b.rep[i][j] = BLOCKED
+			} else {
+				b.rep[i][j] = OPEN
+			}
 		}
 	}
 	for _, p := range b.players {
