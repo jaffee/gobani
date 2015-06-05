@@ -16,12 +16,13 @@ type Game struct {
 type Player struct {
 	Name string
 	conn net.Conn
+	Num  int
 }
 
 func (g *Game) Play() {
 	q := make(chan Player, 1000)
 	go qwatcher(q, g)
-	l, err := net.Listen("tcp", ":54321")
+	l, err := net.Listen("tcp", ":80")
 	check_err(err)
 	for {
 		conn, err := l.Accept()
@@ -39,7 +40,7 @@ func handleNewConn(conn net.Conn, q chan Player) {
 			fmt.Println(fmt.Sprintf("Had an error with %v\n", conn.RemoteAddr()))
 		}
 	}()
-	p := Player{"", conn}
+	p := Player{"", conn, 0}
 	p.SendMsg("Type your name, then hit enter: ")
 	p.Name = p.RecvMsg()
 	p.SendMsg(fmt.Sprintf("Thanks %v! We'll get you into the game as soon as possible.\n", p.Name))
@@ -99,9 +100,21 @@ func (p *Player) RecvMsg() (s string) {
 		fmt.Println("Problem receiving message: ", err.Error())
 		panic(err)
 	}
-	if n > 2 {
-		return string(buff[:n-2])
+	cutoff := 0 // for handling different line terminator styles
+	if n > 0 {
+		if buff[n-1] == 10 {
+			cutoff = 1 // netcat uses just a LF char (ascii 10)
+		}
+	}
+	if n > 1 {
+		if buff[n-2] == 13 {
+			cutoff = 2 // telnet uses CR LF (ascii 13 10)
+		}
+	}
+	if n > 0 {
+		return string(buff[:n-cutoff])
 	} else {
+		fmt.Println("trying again")
 		return p.RecvMsg()
 	}
 }
