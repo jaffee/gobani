@@ -36,15 +36,20 @@ type Player struct {
 	pos position
 }
 
-func (p *Player) Move(msg string, height int, width int) {
-	if msg == "w" && p.pos.y-1 >= 0 {
-		p.pos.y = p.pos.y - 1
-	} else if msg == "s" && p.pos.y+1 < height {
-		p.pos.y = p.pos.y + 1
-	} else if msg == "d" && p.pos.x+1 < width {
-		p.pos.x = p.pos.x + 1
-	} else if msg == "a" && p.pos.x-1 >= 0 {
-		p.pos.x = p.pos.x - 1
+func (p *Player) Move(msg string, b battlefield) {
+	newpos := position{p.pos.x, p.pos.y}
+	if msg == "w" && newpos.y-1 >= 0 {
+		newpos.y = newpos.y - 1
+	} else if msg == "s" && newpos.y+1 < b.height {
+		newpos.y = newpos.y + 1
+	} else if msg == "d" && newpos.x+1 < b.width {
+		newpos.x = newpos.x + 1
+	} else if msg == "a" && newpos.x-1 >= 0 {
+		newpos.x = newpos.x - 1
+	}
+
+	if b.Rep()[newpos.y][newpos.x] == OPEN || b.Rep()[newpos.y][newpos.x] == GOLD {
+		p.pos = newpos
 	}
 }
 
@@ -70,7 +75,7 @@ func goldrace(ps []game.Player) {
 
 	for {
 		com := <-commands_chan
-		com.p.Move(com.msg, b.height, b.width)
+		com.p.Move(com.msg, b)
 		for _, p := range players {
 			p.SendMsg(b.toString())
 		}
@@ -121,9 +126,28 @@ func welcome(players []*Player) {
 	}
 }
 
-func randPos(height int, width int) (pos position) {
-	pos = position{rand.Intn(width), rand.Intn(height)}
-	return
+func randOpenPos(height, width int, rep [][]string) position {
+	numOpen := 0
+	for i := 0; i < height; i++ {
+		for j := 0; j < width; j++ {
+			if rep[i][j] == OPEN {
+				numOpen++
+			}
+		}
+	}
+	posNum := rand.Intn(numOpen)
+	numOpen = 0
+	for i := 0; i < height; i++ {
+		for j := 0; j < width; j++ {
+			if rep[i][j] == OPEN {
+				if posNum == numOpen {
+					return position{j, i}
+				}
+				numOpen++
+			}
+		}
+	}
+	panic("No open positions")
 }
 
 func makeBattlefield(height int, width int, players []*Player) battlefield {
@@ -140,18 +164,16 @@ func makeBattlefield(height int, width int, players []*Player) battlefield {
 	}
 
 	for _, p := range players {
-		p.pos = randPos(height, width)
+		p.pos = randOpenPos(height, width, rep)
 	}
-	// TODO detect collisions
 
-	goldPos := randPos(height, width)
+	goldPos := randOpenPos(height, width, rep)
 	rep[goldPos.y][goldPos.x] = GOLD
 
 	return battlefield{height, width, rep, players, goldPos}
 }
 
-func (b *battlefield) toString() string {
-	// TODO maybe cache whether string rep needs to be updated
+func (b *battlefield) Rep() [][]string {
 	for i := 0; i < height; i++ {
 		for j := 0; j < width; j++ {
 			if i == 0 || i == height-1 || j == 0 || j == width-1 {
@@ -165,7 +187,12 @@ func (b *battlefield) toString() string {
 		b.rep[p.pos.y][p.pos.x] = strconv.Itoa(p.Num)
 	}
 	b.rep[b.gold_position.y][b.gold_position.x] = GOLD
+	return b.rep
+}
 
+func (b *battlefield) toString() string {
+	// TODO maybe cache whether string rep needs to be updated
+	b.rep = b.Rep()
 	lines := make([]string, b.height)
 	for i, row := range b.rep {
 		lines[i] = strings.Join(row, "")
