@@ -100,7 +100,6 @@ func makePlayers(ps []game.Player) []*Player {
 	return players
 }
 
-// TODO realtime instead of turn based
 func handlePlayer(p *Player, coms chan command, quit chan bool) {
 	for {
 		msg := p.RecvMsg()
@@ -172,23 +171,3 @@ func (b *battlefield) toString() string {
 	}
 	return strings.Join(lines, "\n") + "\n"
 }
-
-// func (b *battlefield) Move(com command) {
-// 	pos := b.positions[com.p.Num]
-// 	move := com.msg
-// 	if move == "w" && pos.y-1 >= 0 {
-// 		b.rep[pos.y][pos.x] = OPEN
-// 		pos.y = pos.y - 1
-// 	} else if move == "s" && pos.y+1 < b.height {
-// 		b.rep[pos.y][pos.x] = OPEN
-// 		pos.y = pos.y + 1
-// 	} else if move == "d" && pos.x+1 < b.width {
-// 		b.rep[pos.y][pos.x] = OPEN
-// 		pos.x = pos.x + 1
-// 	} else if move == "a" && pos.x-1 >= 0 {
-// 		b.rep[pos.y][pos.x] = OPEN
-// 		pos.x = pos.x - 1
-// 	}
-// 	b.rep[pos.y][pos.x] = strconv.Itoa(pnum)
-// 	b.positions[com.p.Num] = pos
-// }
