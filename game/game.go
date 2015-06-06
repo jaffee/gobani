@@ -13,12 +13,6 @@ type Game struct {
 	NumPlayers int
 }
 
-type Player struct {
-	Name string
-	conn net.Conn
-	Num  int
-}
-
 func (g *Game) Play() {
 	q := make(chan Player, 1000)
 	go qwatcher(q, g)
@@ -31,6 +25,49 @@ func (g *Game) Play() {
 		} else {
 			go handleNewConn(conn, q)
 		}
+	}
+}
+
+type Player struct {
+	Name string
+	conn net.Conn
+	Num  int
+}
+
+func (p *Player) SendMsg(s string) (n int, err error) {
+	bs := []byte(s)
+	n, err = p.conn.Write(bs)
+	return n, err
+}
+
+func (p *Player) EndGame(msg string) {
+	p.SendMsg(msg)
+	p.conn.Close()
+}
+
+func (p *Player) RecvMsg() (s string) {
+	buff := make([]byte, 100)
+	n, err := p.conn.Read(buff)
+	if err != nil {
+		fmt.Println("Problem receiving message: ", err.Error())
+		panic(err)
+	}
+	cutoff := 0 // for handling different line terminator styles
+	if n > 0 {
+		if buff[n-1] == 10 {
+			cutoff = 1 // netcat uses just a LF char (ascii 10)
+		}
+	}
+	if n > 1 {
+		if buff[n-2] == 13 {
+			cutoff = 2 // telnet uses CR LF (ascii 13 10)
+		}
+	}
+	if n > 0 {
+		return string(buff[:n-cutoff])
+	} else {
+		fmt.Println("trying again")
+		return p.RecvMsg()
 	}
 }
 
@@ -79,43 +116,6 @@ func (g *Game) PlayGame(q chan Player, ps []Player) {
 	g.Playfunc(ps)
 	for _, p := range ps {
 		q <- p
-	}
-}
-
-func (p *Player) SendMsg(s string) (n int, err error) {
-	bs := []byte(s)
-	n, err = p.conn.Write(bs)
-	return n, err
-}
-
-func (p *Player) EndGame(msg string) {
-	p.SendMsg(msg)
-	p.conn.Close()
-}
-
-func (p *Player) RecvMsg() (s string) {
-	buff := make([]byte, 100)
-	n, err := p.conn.Read(buff)
-	if err != nil {
-		fmt.Println("Problem receiving message: ", err.Error())
-		panic(err)
-	}
-	cutoff := 0 // for handling different line terminator styles
-	if n > 0 {
-		if buff[n-1] == 10 {
-			cutoff = 1 // netcat uses just a LF char (ascii 10)
-		}
-	}
-	if n > 1 {
-		if buff[n-2] == 13 {
-			cutoff = 2 // telnet uses CR LF (ascii 13 10)
-		}
-	}
-	if n > 0 {
-		return string(buff[:n-cutoff])
-	} else {
-		fmt.Println("trying again")
-		return p.RecvMsg()
 	}
 }
 
