@@ -52,7 +52,7 @@ type battlefield struct {
 	height        int
 	width         int
 	rep           [][]string
-	players       []Player
+	players       []*Player
 	gold_position position
 	// cache whether rep has been updated
 }
@@ -62,7 +62,7 @@ func goldrace(ps ...game.Player) {
 	welcome(players)
 	b := makeBattlefield(height, width, players)
 	commands_chan := make(chan command, 100)
-	quit_chan := make(chan bool, 1)
+	quit_chan := make(chan bool, len(ps)+1)
 	for _, p := range players {
 		go handlePlayer(p, commands_chan, quit_chan)
 		p.SendMsg(b.toString())
@@ -71,14 +71,20 @@ func goldrace(ps ...game.Player) {
 	for {
 		com := <-commands_chan
 		com.p.Move(com.msg, b.height, b.width)
-		com.p.SendMsg(b.toString())
+		for _, p := range players {
+			p.SendMsg(b.toString())
+		}
+		fmt.Printf("%v, %v\n", com.p.pos, b.gold_position)
 		if com.p.pos == b.gold_position {
 			for _, p := range players {
-				if &p == com.p {
+				if p == com.p {
 					p.SendMsg("You Win!\n")
 				} else {
 					p.SendMsg("You Lose!\n")
 				}
+			}
+			for i := 0; i < len(ps); i++ {
+				quit_chan <- true
 			}
 			time.Sleep(time.Second * 3)
 			return
@@ -86,20 +92,19 @@ func goldrace(ps ...game.Player) {
 	}
 }
 
-func makePlayers(ps []game.Player) []Player {
-	players := make([]Player, len(ps))
+func makePlayers(ps []game.Player) []*Player {
+	players := make([]*Player, len(ps))
 	for i := 0; i < len(ps); i++ {
-		players[i] = Player{&ps[i], position{}}
+		players[i] = &Player{&ps[i], position{}}
 	}
-	fmt.Printf("%v\n", players)
 	return players
 }
 
 // TODO realtime instead of turn based
-func handlePlayer(p Player, coms chan command, quit chan bool) {
+func handlePlayer(p *Player, coms chan command, quit chan bool) {
 	for {
 		msg := p.RecvMsg()
-		com := command{&p, msg}
+		com := command{p, msg}
 		coms <- com
 		select {
 		case <-quit:
@@ -110,7 +115,7 @@ func handlePlayer(p Player, coms chan command, quit chan bool) {
 	}
 }
 
-func welcome(players []Player) {
+func welcome(players []*Player) {
 	for i, p := range players {
 		p.Num = i
 		p.SendMsg(fmt.Sprintf("You are player %v - use 'w', 's', 'a', and 'd' to get to the Gold!\n", i))
@@ -122,7 +127,7 @@ func randPos(height int, width int) (pos position) {
 	return
 }
 
-func makeBattlefield(height int, width int, players []Player) battlefield {
+func makeBattlefield(height int, width int, players []*Player) battlefield {
 	rep := make([][]string, height)
 	for i := 0; i < height; i++ {
 		rep[i] = make([]string, width)
@@ -159,7 +164,7 @@ func (b *battlefield) toString() string {
 	for _, p := range b.players {
 		b.rep[p.pos.y][p.pos.x] = strconv.Itoa(p.Num)
 	}
-	b.rep[b.gold_position.x][b.gold_position.y] = GOLD
+	b.rep[b.gold_position.y][b.gold_position.x] = GOLD
 
 	lines := make([]string, b.height)
 	for i, row := range b.rep {
