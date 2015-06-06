@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type Gameplay func(...Player)
+type Gameplay func([]Player)
 
 type Game struct {
 	Playfunc   Gameplay
@@ -62,12 +62,12 @@ func qwatcher(q chan Player, g *Game) {
 		}
 
 		fmt.Printf("I got players named %v\n", strings.Join(names, ", "))
-		go g.PlayGame(q, pslice...)
+		go g.PlayGame(q, pslice)
 	}
 }
 
 // Wraps Game.Playfunc with error handling so that one misbehaving Playfunc won't crash the whole app
-func (g *Game) PlayGame(q chan Player, ps ...Player) {
+func (g *Game) PlayGame(q chan Player, ps []Player) {
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -76,7 +76,7 @@ func (g *Game) PlayGame(q chan Player, ps ...Player) {
 			}
 		}
 	}()
-	g.Playfunc(ps...)
+	g.Playfunc(ps)
 	for _, p := range ps {
 		q <- p
 	}

@@ -14,7 +14,7 @@ func main() {
 	g.Play()
 }
 
-func theThunderdome(ps ...game.Player) {
+func theThunderdome(ps []game.Player) {
 	p1 := ps[0]
 	p2 := ps[1]
 	defer func() {

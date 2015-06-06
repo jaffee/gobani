@@ -49,15 +49,15 @@ func (p *Player) Move(msg string, height int, width int) {
 }
 
 type battlefield struct {
-	height        int
-	width         int
-	rep           [][]string
+	height int
+	width  int
+	rep    [][]string
+	// TODO add obstacles to battlefield
 	players       []*Player
 	gold_position position
-	// cache whether rep has been updated
 }
 
-func goldrace(ps ...game.Player) {
+func goldrace(ps []game.Player) {
 	players := makePlayers(ps)
 	welcome(players)
 	b := makeBattlefield(height, width, players)
@@ -151,6 +151,7 @@ func makeBattlefield(height int, width int, players []*Player) battlefield {
 }
 
 func (b *battlefield) toString() string {
+	// TODO maybe cache whether string rep needs to be updated
 	for i := 0; i < height; i++ {
 		for j := 0; j < width; j++ {
 			if i == 0 || i == height-1 || j == 0 || j == width-1 {
