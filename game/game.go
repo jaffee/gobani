@@ -45,12 +45,11 @@ func (p *Player) EndGame(msg string) {
 	p.conn.Close()
 }
 
-func (p *Player) RecvMsg() (s string) {
+func (p *Player) RecvMsg() (s string, err error) {
 	buff := make([]byte, 100)
 	n, err := p.conn.Read(buff)
 	if err != nil {
-		fmt.Println("Problem receiving message: ", err.Error())
-		panic(err)
+		return "", err
 	}
 	cutoff := 0 // for handling different line terminator styles
 	if n > 0 {
@@ -63,8 +62,8 @@ func (p *Player) RecvMsg() (s string) {
 			cutoff = 2 // telnet uses CR LF (ascii 13 10)
 		}
 	}
-	if n > 0 {
-		return string(buff[:n-cutoff])
+	if n-cutoff > 0 {
+		return string(buff[:n-cutoff]), nil
 	} else {
 		fmt.Println("trying again")
 		return p.RecvMsg()
@@ -79,7 +78,14 @@ func handleNewConn(conn net.Conn, q chan Player) {
 	}()
 	p := Player{"", conn, 0}
 	p.SendMsg("Type your name, then hit enter: ")
-	p.Name = p.RecvMsg()
+
+	name, err := p.RecvMsg()
+	if err != nil {
+		// TODO convert to logging
+		fmt.Printf("Could not get player name, err=%v\n", err)
+		return
+	}
+	p.Name = name
 	p.SendMsg(fmt.Sprintf("Thanks %v! We'll get you into the game as soon as possible.\n", p.Name))
 	q <- p
 }
@@ -94,6 +100,7 @@ func qwatcher(q chan Player, g *Game) {
 	names := make([]string, g.NumPlayers)
 	for {
 		for i := 0; i < g.NumPlayers; i++ {
+			// TODO verify player connection is still alive / player still active
 			pslice[i] = <-q
 			names[i] = pslice[i].Name
 		}
@@ -107,7 +114,7 @@ func qwatcher(q chan Player, g *Game) {
 func (g *Game) PlayGame(q chan Player, ps []Player) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println(r)
+			fmt.Printf("Recovering in PlayGame: r=%v", r)
 			for _, p := range ps {
 				p.conn.Close()
 			}

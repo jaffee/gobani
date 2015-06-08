@@ -75,11 +75,14 @@ func goldrace(ps []game.Player) {
 
 	for {
 		com := <-commands_chan
+		if com.msg == "quit" {
+			players = append(players[:com.p.Num], players[com.p.Num+1:]...)
+			// TODO handle this everywhere - don't re-enqueue quit players etc.
+		}
 		com.p.Move(com.msg, b)
 		for _, p := range players {
 			p.SendMsg(b.toString())
 		}
-		fmt.Printf("%v, %v\n", com.p.pos, b.gold_position)
 		if com.p.pos == b.gold_position {
 			for _, p := range players {
 				if p == com.p {
@@ -107,7 +110,15 @@ func makePlayers(ps []game.Player) []*Player {
 
 func handlePlayer(p *Player, coms chan command, quit chan bool) {
 	for {
-		msg := p.RecvMsg()
+		msg, err := p.RecvMsg()
+		if err != nil {
+			fmt.Printf("problem with player %v, error=%v\n", p, err)
+			p.EndGame("Connection trouble - kicking you :)\n")
+			msg = "quit"
+			com := command{p, msg}
+			coms <- com
+			return
+		}
 		com := command{p, msg}
 		coms <- com
 		select {
