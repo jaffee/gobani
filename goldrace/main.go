@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jaffee/gobani/game"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -112,7 +113,7 @@ func handlePlayer(p *Player, coms chan command, quit chan bool) {
 	for {
 		msg, err := p.RecvMsg()
 		if err != nil {
-			fmt.Printf("problem with player %v, error=%v\n", p, err)
+			log.Printf("problem with player %v, error=%v\n", p, err)
 			p.EndGame("Connection trouble - kicking you :)\n")
 			msg = "quit"
 			com := command{p, msg}

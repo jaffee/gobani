@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
@@ -21,7 +22,7 @@ func (g *Game) Play() {
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			fmt.Printf("Error accepting new connection %v\n", err)
+			log.Printf("Error accepting new connection %v\n", err)
 		} else {
 			go handleNewConn(conn, q)
 		}
@@ -65,7 +66,7 @@ func (p *Player) RecvMsg() (s string, err error) {
 	if n-cutoff > 0 {
 		return string(buff[:n-cutoff]), nil
 	} else {
-		fmt.Println("trying again")
+		log.Println("trying again")
 		return p.RecvMsg()
 	}
 }
@@ -73,7 +74,7 @@ func (p *Player) RecvMsg() (s string, err error) {
 func handleNewConn(conn net.Conn, q chan Player) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println(fmt.Sprintf("Had an error with %v\n", conn.RemoteAddr()))
+			log.Println(fmt.Sprintf("Had an error with %v\n", conn.RemoteAddr()))
 		}
 	}()
 	p := Player{"", conn, 0}
@@ -82,7 +83,7 @@ func handleNewConn(conn net.Conn, q chan Player) {
 	name, err := p.RecvMsg()
 	if err != nil {
 		// TODO convert to logging
-		fmt.Printf("Could not get player name, err=%v\n", err)
+		log.Printf("Could not get player name, err=%v\n", err)
 		return
 	}
 	p.Name = name
@@ -105,7 +106,7 @@ func qwatcher(q chan Player, g *Game) {
 			names[i] = pslice[i].Name
 		}
 
-		fmt.Printf("I got players named %v\n", strings.Join(names, ", "))
+		log.Printf("I got players named %v\n", strings.Join(names, ", "))
 		go g.PlayGame(q, pslice)
 	}
 }
@@ -114,7 +115,7 @@ func qwatcher(q chan Player, g *Game) {
 func (g *Game) PlayGame(q chan Player, ps []Player) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("Recovering in PlayGame: r=%v", r)
+			log.Printf("Recovering in PlayGame: r=%v", r)
 			for _, p := range ps {
 				p.conn.Close()
 			}
