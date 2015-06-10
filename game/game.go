@@ -82,7 +82,6 @@ func handleNewConn(conn net.Conn, q chan Player) {
 
 	name, err := p.RecvMsg()
 	if err != nil {
-		// TODO convert to logging
 		log.Printf("Could not get player name, err=%v\n", err)
 		return
 	}
