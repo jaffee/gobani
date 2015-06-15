@@ -53,7 +53,7 @@ type battlefield struct {
 	width  int
 	rep    [][]string
 	// TODO add obstacles to battlefield
-	players       map[int]Player
+	players       map[int]*Player
 	gold_position position
 }
 
@@ -84,24 +84,21 @@ func goldrace(ps []*game.Player, commands_chan chan game.Command, quit_chan chan
 					p.SendMsg("You Lose!\n")
 				}
 			}
-			for i := 0; i < len(ps); i++ {
-				quit_chan <- true
-			}
 			time.Sleep(time.Second * 3)
 			return
 		}
 	}
 }
 
-func makePlayers(ps []*game.Player) map[int]Player {
-	players := make(map[int]Player)
-	for i := 0; i < len(ps); i++ {
-		players[i] = Player{*(ps[i]), position{}}
+func makePlayers(ps []*game.Player) map[int]*Player {
+	players := make(map[int]*Player)
+	for _, p := range ps {
+		players[p.Id] = &Player{*p, position{}}
 	}
 	return players
 }
 
-func welcome(players map[int]Player) {
+func welcome(players map[int]*Player) {
 	for i, p := range players {
 		p.Num = i
 		p.SendMsg(fmt.Sprintf("You are player %v - use 'w', 's', 'a', and 'd' to get to the Gold!\n", i))
@@ -132,7 +129,14 @@ func randOpenPos(height, width int, rep [][]string) position {
 	panic("No open positions")
 }
 
-func makeBattlefield(height int, width int, players map[int]Player) battlefield {
+func printPlayers(players map[int]*Player) {
+	for i, p := range players {
+		fmt.Printf("%v: %v, ", i, *p)
+	}
+	fmt.Println("")
+}
+
+func makeBattlefield(height int, width int, players map[int]*Player) battlefield {
 	rep := make([][]string, height)
 	for i := 0; i < height; i++ {
 		rep[i] = make([]string, width)

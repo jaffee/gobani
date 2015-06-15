@@ -118,6 +118,12 @@ func handlePlayer(p *Player, coms chan Command, quit chan bool) {
 		msg, err = p.RecvMsg()
 		if isTimeout(err) {
 			err = nil
+			select {
+			case <-quit:
+				return
+			default:
+				continue
+			}
 		}
 		if err != nil {
 			log.Printf("problem with player %v, error=%v\n", p, err)
@@ -131,8 +137,7 @@ func handlePlayer(p *Player, coms chan Command, quit chan bool) {
 		com = Command{p, msg}
 		coms <- com
 		select {
-		case <-quit:
-			p.Active = false
+		case _, _ = <-quit:
 			return
 		default:
 			continue
@@ -171,11 +176,12 @@ func (g *Game) PlayGame(q chan *Player, ps []*Player) {
 		}
 	}()
 	commands_chan := make(chan Command, 100)
-	quit_chan := make(chan bool, len(ps)+1)
+	quit_chan := make(chan bool, 0)
 	for _, p := range ps {
 		go handlePlayer(p, commands_chan, quit_chan)
 	}
 	g.Playfunc(ps, commands_chan, quit_chan)
+	close(quit_chan)
 	for _, p := range ps {
 		if p.Active {
 			q <- p
