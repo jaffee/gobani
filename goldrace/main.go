@@ -170,7 +170,8 @@ func (b *battlefield) Rep() [][]string {
 		}
 	}
 	for _, p := range b.players {
-		b.rep[p.pos.y][p.pos.x] = strconv.Itoa(p.Num)
+		// can really only support up to 10 players because of this
+		b.rep[p.pos.y][p.pos.x] = strconv.Itoa(p.Num % 10)
 	}
 	b.rep[b.gold_position.y][b.gold_position.x] = GOLD
 	return b.rep

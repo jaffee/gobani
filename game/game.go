@@ -62,6 +62,7 @@ func (p *Player) RecvMsg() (s string, err error) {
 	if err != nil {
 		return "", err
 	}
+
 	cutoff := 0 // for handling different line terminator styles
 	if n > 0 {
 		if buff[n-1] == 10 {
