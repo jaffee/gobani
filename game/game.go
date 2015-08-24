@@ -6,7 +6,15 @@ import (
 	"net"
 	"strings"
 	"time"
+	"flag"
+	"strconv"
 )
+
+var port int
+func init () {
+	flag.IntVar(&port, "port", 80, "Port to listen on")
+	flag.Parse()
+}
 
 type Gameplay func([]*Player, chan Command, chan bool)
 
@@ -24,7 +32,7 @@ func (g *Game) Play() {
 	q := make(chan *Player, 1000)
 	num := 0
 	go qwatcher(q, g)
-	l, err := net.Listen("tcp", ":80")
+	l, err := net.Listen("tcp", ":" + strconv.Itoa(port))
 	check_err(err)
 	for {
 		conn, err := l.Accept()
