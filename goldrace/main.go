@@ -11,7 +11,7 @@ import (
 
 func main() {
 	rand.Seed(time.Now().Unix())
-	g := game.Game{goldrace, 2}
+	g := game.Game{goldrace, 2, 20, 15}
 	g.Play()
 }
 

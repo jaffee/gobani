@@ -20,7 +20,9 @@ type Gameplay func([]*Player, chan Command, chan bool)
 
 type Game struct {
 	Playfunc   Gameplay
-	NumPlayers int
+	MinPlayers int
+	MaxPlayers int
+	Timeout    int64
 }
 
 type Command struct {
@@ -161,15 +163,21 @@ func handlePlayer(p *Player, coms chan Command, quit chan bool) {
 // there is a max waiting time for the player who has been waiting the longest (to guard against lots of people joining and leaving)
 func qwatcher(q chan *Player, g *Game) {
 	var pslice []*Player
-	names := make([]string, g.NumPlayers)
+	startTime := time.Now().Unix()
+	names := make([]string, g.MaxPlayers)
 	for {
 		log.Printf("Start new lobby\n")
-		pslice = make([]*Player, g.NumPlayers)
-		for i := 0; i < g.NumPlayers; i++ {
+		pslice = make([]*Player, g.MaxPlayers)
+		for i := 0; i < g.MaxPlayers; i++ {
 			// TODO verify player connection is still alive / player still active
 			pslice[i] = <-q
-			log.Printf("Got a player %v, number %v\n", pslice[i], i)
 			names[i] = pslice[i].Name
+			log.Printf("Got a player %v, number %v\n", pslice[i], i)
+			if i+1 >= g.MinPlayers && time.Now().Unix() - startTime > g.Timeout {
+				names = names[:i+1]
+				pslice = pslice[:i+1]
+				break
+			}
 		}
 		log.Printf("I got players named %v ...starting game\n", strings.Join(names, ", "))
 		go g.PlayGame(q, pslice)
