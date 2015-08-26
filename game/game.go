@@ -160,16 +160,18 @@ func handlePlayer(p *Player, coms chan Command, quit chan bool) {
 // every time a player joins the timeout is (at least partially) reset
 // there is a max waiting time for the player who has been waiting the longest (to guard against lots of people joining and leaving)
 func qwatcher(q chan *Player, g *Game) {
-	pslice := make([]*Player, g.NumPlayers)
+	var pslice []*Player
 	names := make([]string, g.NumPlayers)
 	for {
+		log.Printf("Start new lobby\n")
+		pslice = make([]*Player, g.NumPlayers)
 		for i := 0; i < g.NumPlayers; i++ {
 			// TODO verify player connection is still alive / player still active
 			pslice[i] = <-q
+			log.Printf("Got a player %v, number %v\n", pslice[i], i)
 			names[i] = pslice[i].Name
 		}
-
-		log.Printf("I got players named %v\n", strings.Join(names, ", "))
+		log.Printf("I got players named %v ...starting game\n", strings.Join(names, ", "))
 		go g.PlayGame(q, pslice)
 	}
 }
