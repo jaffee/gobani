@@ -102,6 +102,20 @@ func welcome(players map[int]*Player) {
 	for i, p := range players {
 		p.Num = i
 		p.SendMsg(fmt.Sprintf("You are player %v - use 'w', 's', 'a', and 'd' to get to the Gold!\n", i))
+		p.SendMsg("'#' characters are walls, 'G' represents the gold. Numbers are other players.\n")
+	}
+	// Countdown clock
+	for count := 5; count >=0; count-- {
+		for _, p := range players {
+			if count == 0 {
+				p.SendMsg("\r")
+			} else {
+				p.SendMsg(fmt.Sprintf("\rStarting in %v...", count))
+			}
+		}
+		if count > 0 {
+			time.Sleep(time.Second * 1)
+		}
 	}
 }
 
