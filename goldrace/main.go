@@ -15,8 +15,8 @@ func main() {
 	g.Play()
 }
 
-var height = 15
-var width = 20
+var height = 20
+var width = 70
 var OPEN = " "
 var BLOCKED = "#"
 var GOLD = "G"
